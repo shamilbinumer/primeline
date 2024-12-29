@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Brand Details</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f4f6f9;
+            padding-top: 50px;
+        }
+        .brand-upload-container {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            padding: 30px;
+        }
+        .form-group label {
+            font-weight: 600;
+            color: #495057;
+        }
+        #categoryContainer {
+            margin-bottom: 15px;
+        }
+        .category-item {
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            padding: 10px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-8 brand-upload-container">
+                <h2 class="text-center mb-4">Upload Brand Details</h2>
+                <form id="brandDetailsForm">
+                    <div class="form-group">
+                        <label for="name">Brand Name</label>
+                        <input type="text" class="form-control" id="name" name="name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="tagline">Brand Tagline</label>
+                        <input type="text" class="form-control" id="tagline" name="tagline" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="missionStatement">Description</label>
+                        <textarea class="form-control" id="missionStatement" name="missionStatement" rows="3" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="coreValues">Core Values (Comma Separated)</label>
+                        <input type="text" class="form-control" id="coreValues" name="coreValues" placeholder="Innovation, Integrity, Customer Focus" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="brandLogo">Brand Logo</label>
+                        <input type="file" class="form-control" id="brandLogo" name="brandLogo" accept="image/*" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Category Images</label>
+                        <div id="categoryContainer">
+                            <!-- Category items will be dynamically added here -->
+                        </div>
+                        <button type="button" id="addCategoryButton" class="btn btn-secondary btn-sm">Add Category Image</button>
+                    </div>
+                    <div class="form-group">
+                        <label for="brandImages">Brand Offer Images</label>
+                        <input type="file" class="form-control" id="brandImages" name="brandImages" multiple accept="image/*">
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block" id="submitButton">Submit Brand Details</button>
+                    <a href="/admin" class="btn btn-danger btn-block mt-3">Back</a>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Helper function to convert file to Base64
+        const fileToBase64 = file => new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = error => reject(error);
+            reader.readAsDataURL(file);
+        });
+
+        // Add category image functionality
+        const categoryContainer = document.getElementById('categoryContainer');
+        const addCategoryButton = document.getElementById('addCategoryButton');
+
+        addCategoryButton.addEventListener('click', function() {
+            const categoryItem = document.createElement('div');
+            categoryItem.className = 'category-item';
+            categoryItem.innerHTML = `
+                <div class="form-row">
+                    <div class="col-md-6">
+                        <input type="file" class="form-control category-image" accept="image/*" required>
+                    </div>
+                    <div class="col-md-6">
+                        <input type="text" class="form-control category-caption" placeholder="Enter image caption" required>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-danger btn-sm mt-2 remove-category">Remove</button>
+            `;
+
+            // Remove category functionality
+            categoryItem.querySelector('.remove-category').addEventListener('click', function() {
+                categoryContainer.removeChild(categoryItem);
+            });
+
+            categoryContainer.appendChild(categoryItem);
+        });
+
+        // Form submission
+        document.getElementById('brandDetailsForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const submitButton = document.getElementById('submitButton');
+            submitButton.disabled = true;
+            submitButton.textContent = 'Adding Brand...';
+
+            const formData = {
+                name: document.getElementById('name').value,
+                tagline: document.getElementById('tagline').value,
+                missionStatement: document.getElementById('missionStatement').value,
+                coreValues: document.getElementById('coreValues').value,
+                brandLogo: '',
+                brandImages: [],
+                categories: []
+            };
+
+            // Convert brand logo to Base64
+            const brandLogoInput = document.getElementById('brandLogo');
+            if (brandLogoInput.files.length > 0) {
+                formData.brandLogo = await fileToBase64(brandLogoInput.files[0]);
+            }
+
+            // Convert brand images to Base64
+            const brandImagesInput = document.getElementById('brandImages');
+            if (brandImagesInput.files.length > 0) {
+                for (const file of brandImagesInput.files) {
+                    const base64Image = await fileToBase64(file);
+                    formData.brandImages.push(base64Image);
+                }
+            }
+
+            // Process category images and captions
+            const categories = document.querySelectorAll('.category-item');
+            for (const category of categories) {
+                const imageInput = category.querySelector('.category-image');
+                const captionInput = category.querySelector('.category-caption');
+                if (imageInput.files.length > 0) {
+                    const base64Image = await fileToBase64(imageInput.files[0]);
+                    formData.categories.push({
+                        image: base64Image,
+                        caption: captionInput.value
+                    });
+                }
+            }
+
+            // Submit the form data as JSON
+            fetch('/api/admin/addBrandDetails', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                alert('Brand details uploaded successfully!');
+                window.location.href = '/admin';
+            })
+            .catch(error => {
+                alert('Error uploading brand details: ' + error.message);
+            })
+            .finally(() => {
+                submitButton.disabled = false;
+                submitButton.textContent = 'Submit Brand Details';
+            });
+        });
+    </script>
+</body>
+</html>
