@@ -1,5 +1,45 @@
 (function () {
   "use strict";
+  document.addEventListener('DOMContentLoaded', function () {
+    const preloader = document.querySelector('#preloader');
+    const swiperContainer = document.querySelector('.brand-details-slider.swiper');
+    const swiperWrapper = document.getElementById('brandImageCarouselWrapper');
+
+
+    // Function to initialize Swiper
+    function initializeSwiper() {
+      return new Swiper(swiperContainer, {
+        loop: true,
+        speed: 600,
+        autoplay: {
+          delay: 6000,
+        },
+        slidesPerView: 'auto',
+        pagination: {
+          el: '.swiper-pagination',
+          type: 'bullets',
+          clickable: true,
+        },
+      });
+    }
+
+    // Initialize Swiper after the content is loaded
+    let swiperInstance = initializeSwiper();
+
+    // Example: Adding dynamic content (if applicable)
+    if (swiperWrapper && swiperWrapper.children.length === 0) {
+      for (let i = 1; i <= 5; i++) {
+        const slide = document.createElement('div');
+        slide.className = 'swiper-slide';
+        slide.innerHTML = `<img src="/assets/img/example-${i}.jpg" alt="Slide ${i}" />`;
+        swiperWrapper.appendChild(slide);
+      }
+
+      // Destroy and reinitialize Swiper after adding slides
+      swiperInstance.destroy(true, true);
+      swiperInstance = initializeSwiper();
+    }
+  });
 
   /**
    * Apply .scrolled class to the body as the page is scrolled down
@@ -53,12 +93,12 @@
   /**
    * Preloader
    */
-  const preloader = document.querySelector('#preloader');
-  if (preloader) {
-    window.addEventListener('load', () => {
-      preloader.remove();
-    });
-  }
+  // const preloader = document.querySelector('#preloader');
+  // if (preloader) {
+  //   window.addEventListener('load', () => {
+  //     preloader.remove();
+  //   });
+  // }
 
   /**
    * Scroll top button
@@ -212,37 +252,42 @@
   }
   window.addEventListener('load', navmenuScrollspy);
   document.addEventListener('scroll', navmenuScrollspy);
+  const preloader = document.querySelector('#preloader');
 
-   // Fetch brand details from the server
-   const brandId = window.location.pathname.split('/').pop(); // Assuming the ID is the last part of the URL
-   const apiUrl = `/api/admin/brand-details/${brandId}`; // Modify this to match your API route
- // Delete brand by ID
+  if (preloader) {
+    // Show the preloader initially
+    preloader.style.display = 'block';
+  }
+  // Fetch brand details from the server
+  const brandId = window.location.pathname.split('/').pop(); // Assuming the ID is the last part of the URL
+  const apiUrl = `/api/admin/brand-details/${brandId}`; // Modify this to match your API route
+  // Delete brand by ID
 
 
 
-   fetch(apiUrl)
-     .then(response => response.json())
-     .then(data => {
-       if (data.success) {
-         const brand = data.brandDetails;
-         
-         
+  fetch(apiUrl)
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        const brand = data.brandDetails;
 
-         // Set brand details dynamically
-         document.getElementById('brandImageCarouselWrapper').innerHTML = brand.brandImages.map((data, index) => {
-    return `
+
+
+        // Set brand details dynamically
+        document.getElementById('brandImageCarouselWrapper').innerHTML = brand.brandImages.map((data, index) => {
+          return `
         <div class="swiper-slide">
             <img src="${data.image}" alt="Brand Image ${index + 1}">
         </div>`;
-}).join('');
+        }).join('');
 
-         document.getElementById('brandImage').src = brand.brandLogo || '/assets/img/placeholder.png';
-         document.getElementById('brandName').textContent = brand.name;
-         document.getElementById('BrandDetailsBrandName').textContent=brand.name;
-         document.getElementById('brandDetailsTagLine').textContent=brand.tagline;
-         document.getElementById('missionStatement').textContent=brand.missionStatement;
-         document.getElementById('coreValues').textContent=brand.coreValues;
-         document.getElementById('ctegory-container').innerHTML = brand.categories.map((data) => {
+        document.getElementById('brandImage').src = brand.brandLogo || '/assets/img/placeholder.png';
+        document.getElementById('brandName').textContent = brand.name;
+        document.getElementById('BrandDetailsBrandName').textContent = brand.name;
+        document.getElementById('brandDetailsTagLine').textContent = brand.tagline;
+        document.getElementById('missionStatement').textContent = brand.missionStatement;
+        document.getElementById('coreValues').textContent = brand.coreValues;
+        document.getElementById('ctegory-container').innerHTML = brand.categories.map((data) => {
           return `
             <div class="cat-card shadow-sm">
               <div class="cat-image">
@@ -252,26 +297,31 @@
             </div>
           `;
         }).join('');
-        
 
-         // Add categories to the grid
-         const categoriesContainer = document.getElementById('brandCategories');
-         brand.categories.forEach(category => {
-           const categoryItem = document.createElement('div');
-           categoryItem.classList.add('grid-item');
-           categoryItem.innerHTML = `
+
+        // Add categories to the grid
+        const categoriesContainer = document.getElementById('brandCategories');
+        brand.categories.forEach(category => {
+          const categoryItem = document.createElement('div');
+          categoryItem.classList.add('grid-item');
+          categoryItem.innerHTML = `
              <img src="${category.image}" alt="${category.name}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;">
              <div class="text-box">${category.name}</div>
            `;
-           categoriesContainer.appendChild(categoryItem);
-         });
-       } else {
-         alert('Brand details not found.');
-       }
-     })
-     .catch(error => {
-       console.error('Error fetching brand details:', error);
+          categoriesContainer.appendChild(categoryItem);
+        });
+      } else {
+        alert('Brand details not found.');
+      }
+    })
+    .catch(error => {
+      console.error('Error fetching brand details:', error);
       //  alert('An error occurred while fetching brand details.');
-     });
+    }) .finally(() => {
+      // Remove the preloader after fetch completes
+      if (preloader) {
+        preloader.remove();
+      }
+    });
 
 })();
